@@ -129,6 +129,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_trace]   sys_trace,
+[SYS_sysinfo] sys_info
 };
 static char *syscall_names[] = {
     [SYS_fork]    = "fork",
@@ -152,7 +153,8 @@ static char *syscall_names[] = {
     [SYS_link]    = "link",
     [SYS_mkdir]   = "mkdir",
     [SYS_close]   = "close",
-    [SYS_trace]   = "trace"
+    [SYS_trace]   = "trace",
+    [SYS_sysinfo] = "sysinfo"
 };
 void
 syscall(void)
