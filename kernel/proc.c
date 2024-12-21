@@ -288,6 +288,7 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
+  np->mask = p->mask;//为什么不加这一行，对于mask的修改变成全局的了
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -653,4 +654,11 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+int
+trace(int mask)
+{
+   struct proc *p = myproc();
+   p->mask = mask;
+   return 0;
 }

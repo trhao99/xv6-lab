@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include <time.h>
 
 uint64
 sys_exit(void)
@@ -94,4 +95,14 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+uint64
+sys_trace(void) {
+  int mask;
+  int val = argint(0, &mask);
+  if(val < 0) {
+    printf("argint: %d\n", val);
+    return -1;
+  }
+  return trace(mask);
 }
