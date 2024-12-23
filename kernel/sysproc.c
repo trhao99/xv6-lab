@@ -80,7 +80,22 @@ sys_sleep(void)
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
+  uint64 start_addr, bit_mask = 0, res_addr;
+  int sz;
+  struct proc* p = myproc();
+  argaddr(0, &start_addr);
+  argint(1, &sz);
+  argaddr(2, &res_addr);
+  sz = sz > 64 ? 64 : sz; //bit_mask就64位,最大能记录64位长的值
+  pte_t *pte;
+  for(int i = 0; i < sz; i++) {
+    pte = walk(p->pagetable, PGROUNDDOWN(start_addr) + i * PGSIZE, 1);
+    if(*pte & PTE_A) {
+      bit_mask |= (1 << i);
+    }
+    *pte = *pte & ~PTE_A;
+  }
+  if(copyout(p->pagetable, res_addr, (char *)&bit_mask, sizeof(bit_mask)) < 0) { return -1; };
   return 0;
 }
 #endif
