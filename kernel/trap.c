@@ -38,7 +38,7 @@ usertrap(void)
 {
   int which_dev = 0;
 
-  if((r_sstatus() & SSTATUS_SPP) != 0)
+  if((r_sstatus() & SSTATUS_SPP) != 0) //SPP 位指示 trap是来自用户模式还是管理模式
     panic("usertrap: not from user mode");
 
   // send interrupts and exceptions to kerneltrap(),
@@ -58,7 +58,7 @@ usertrap(void)
 
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
-    p->trapframe->epc += 4;
+    p->trapframe->epc += 4; //trap返回时，跳过导致进入trap的ecall指令(4个字节)，继续执行ecall的下一个指令
 
     // an interrupt will change sstatus &c registers,
     // so don't enable until done with those registers.
@@ -101,6 +101,7 @@ usertrapret(void)
 
   // set up trapframe values that uservec will need when
   // the process next re-enters the kernel.
+  // 设置下一次trap时trampoline.S uservec中需要的值
   p->trapframe->kernel_satp = r_satp();         // kernel page table
   p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
   p->trapframe->kernel_trap = (uint64)usertrap;
@@ -124,6 +125,7 @@ usertrapret(void)
   // jump to trampoline.S at the top of memory, which 
   // switches to the user page table, restores user registers,
   // and switches to user mode with sret.
+  // trampoline地址 + （trampline.S中userret与trampoline标记的地址差）,也就是让fn指向userret
   uint64 fn = TRAMPOLINE + (userret - trampoline);
   ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);
 }
@@ -138,7 +140,7 @@ kerneltrap()
   uint64 sstatus = r_sstatus();
   uint64 scause = r_scause();
   
-  if((sstatus & SSTATUS_SPP) == 0)
+  if((sstatus & SSTATUS_SPP) == 0) //SPP 位指示 trap是来自用户模式还是管理模式
     panic("kerneltrap: not from supervisor mode");
   if(intr_get() != 0)
     panic("kerneltrap: interrupts enabled");

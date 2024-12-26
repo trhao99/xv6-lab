@@ -8,10 +8,10 @@
 .globl kernelvec
 .align 4
 kernelvec:
-        // make room to save registers.
+        # make room to save registers.
         addi sp, sp, -256
 
-        // save the registers.
+        # save the registers.
         sd ra, 0(sp)
         sd sp, 8(sp)
         sd gp, 16(sp)
@@ -44,14 +44,14 @@ kernelvec:
         sd t5, 232(sp)
         sd t6, 240(sp)
 
-	// call the C trap handler in trap.c
+	# call the C trap handler in trap.c
         call kerneltrap
 
-        // restore registers.
+        # restore registers.
         ld ra, 0(sp)
         ld sp, 8(sp)
         ld gp, 16(sp)
-        // not this, in case we moved CPUs: ld tp, 24(sp)
+        # not this, in case we moved CPUs: ld tp, 24(sp)
         ld t0, 32(sp)
         ld t1, 40(sp)
         ld t2, 48(sp)
@@ -82,7 +82,7 @@ kernelvec:
 
         addi sp, sp, 256
 
-        // return to whatever we were doing in the kernel.
+        # return to whatever we were doing in the kernel.
         sret
 
         #

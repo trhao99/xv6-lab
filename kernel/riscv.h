@@ -288,7 +288,7 @@ static inline int
 intr_get()
 {
   uint64 x = r_sstatus();
-  return (x & SSTATUS_SIE) != 0;
+  return (x & SSTATUS_SIE) != 0; // SIE 位控制是否启用设备中断
 }
 
 static inline uint64
@@ -320,6 +320,14 @@ r_ra()
 {
   uint64 x;
   asm volatile("mv %0, ra" : "=r" (x) );
+  return x;
+}
+
+static inline uint64
+r_fp()
+{
+  uint64 x;
+  asm volatile("mv %0, s0" : "=r" (x) );
   return x;
 }
 
