@@ -130,7 +130,7 @@ char*           safestrcpy(char*, const char*, int);
 int             strlen(const char*);
 int             strncmp(const char*, const char*, uint);
 char*           strncpy(char*, const char*, int);
-void*           memcpy(void *dst, const void *src, uint n);
+
 // syscall.c
 int             argint(int, int*);
 int             argstr(int, char*, int);

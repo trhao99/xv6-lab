@@ -110,6 +110,7 @@ sys_sigalarm(void) {
   struct proc *p = myproc();
   p->alarm_interval = interval;
   p->alarm_handler_addr = handler_addr;
+  p->handler_lock = 0;
   return 0;
 }
 uint64

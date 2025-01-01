@@ -122,6 +122,7 @@ found:
   p->alarm_interval = 0;
   p->alarm_passed_tricks = 0;
   p->alarm_handler_addr = 0;
+  p->handler_lock = 1;
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -162,7 +163,7 @@ freeproc(struct proc *p)
     kfree((void*)p->bak_trapframe);
   p->bak_trapframe = 0;
   p->trapframe = 0;
-  p->handler_lock = 0;
+  p->handler_lock = 1;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
