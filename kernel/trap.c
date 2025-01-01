@@ -77,8 +77,19 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    p->alarm_passed_tricks++;
+//    printf("%d\n",p->alarm_passed_tricks);
+    if(p->handler_lock != 1 && p->alarm_passed_tricks >= p->alarm_interval) {
+      p->alarm_passed_tricks = 0;
+      //保存原有寄存器值，handler执行后p->tranframe值会被污染
+      *p->bak_trapframe = *p->trapframe;
+      //修改返回用户态时 程序计数器地址,也就是要执行的下一条指令的地址
+      p->trapframe->epc = p->alarm_handler_addr;
+      p->handler_lock = 1;
+    }
     yield();
+  }
 
   usertrapret();
 }

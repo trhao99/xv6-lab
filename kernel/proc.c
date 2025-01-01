@@ -119,14 +119,20 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
-
+  p->alarm_interval = 0;
+  p->alarm_passed_tricks = 0;
+  p->alarm_handler_addr = 0;
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
     release(&p->lock);
     return 0;
   }
-
+  if((p->bak_trapframe = (struct trapframe *)kalloc()) == 0) {
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -152,7 +158,11 @@ freeproc(struct proc *p)
 {
   if(p->trapframe)
     kfree((void*)p->trapframe);
+  if(p->bak_trapframe)
+    kfree((void*)p->bak_trapframe);
+  p->bak_trapframe = 0;
   p->trapframe = 0;
+  p->handler_lock = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
@@ -291,6 +301,7 @@ fork(void)
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
+  *(np->bak_trapframe) = *(p->bak_trapframe);
 
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;

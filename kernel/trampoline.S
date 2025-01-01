@@ -15,6 +15,9 @@ trampoline:
 .globl uservec
 uservec:    
 	#
+	    # 当前使用的是用户空间页表，但是模式是内核态,而非用户态
+	    # 使用的还是用户代码的寄存器，所以要想正常执行应该将用户寄存器保存到堆栈上，
+	    # 然后切换为内核页表，使用寄存器
         # trap.c sets stvec to point here, so
         # traps from user space start here,
         # in supervisor mode, but with a
@@ -76,6 +79,7 @@ uservec:
         # restore kernel page table from p->trapframe->kernel_satp
         ld t1, 0(a0)
         csrw satp, t1
+        # 用于同步内存管理数据结构的更新
         sfence.vma zero, zero
 
         # a0 is no longer valid, since the kernel page

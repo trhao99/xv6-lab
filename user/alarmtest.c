@@ -119,6 +119,7 @@ test2()
   if ((pid = fork()) < 0) {
     printf("test2: fork failed\n");
   }
+  //子进程
   if (pid == 0) {
     count = 0;
     sigalarm(2, slow_handler);
@@ -149,7 +150,7 @@ slow_handler()
     printf("test2 failed: alarm handler called more than once\n");
     exit(1);
   }
-  for (int i = 0; i < 1000*500000; i++) {
+  for (int i = 0; i < 1000*500000; i++) {//停留过久导致第二次调用会在该函数返回前过来
     asm volatile("nop"); // avoid compiler optimizing away loop
   }
   sigalarm(0, 0);
