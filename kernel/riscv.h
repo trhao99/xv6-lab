@@ -364,3 +364,8 @@ sfence_vma()
 
 typedef uint64 pte_t;
 typedef uint64 *pagetable_t; // 512 PTEs
+
+#define SET_RSW(pte) ((pte | (1L << 8)))
+#define UNSET_RSW(pte) ((pte & ~(1L << 8)))
+#define GET_RSW(pte) (((pte) >> 8) & 0x1)
+#define COW(pte) (GET_RSW(pte) == 1)

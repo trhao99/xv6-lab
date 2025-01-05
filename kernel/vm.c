@@ -300,33 +300,51 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
+//  printf("old:%p, new:%p", old, new);
   pte_t *pte;
-  uint64 pa, i;
-  uint flags;
-  char *mem;
-
-  for(i = 0; i < sz; i += PGSIZE){
+  uint64 i;
+  for(i = 0; i < sz; i += PGSIZE) {
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
-      goto err;
-    }
+    
+    *pte = *pte & ~PTE_W;
+    *pte = SET_RSW(*pte);
+    inc_refs(PTE2PA(*pte));
+    mappages(new, i, PGSIZE, PTE2PA(*pte), PTE_FLAGS(*pte));
   }
   return 0;
 
- err:
-  uvmunmap(new, 0, i / PGSIZE, 1);
-  return -1;
 }
+int miss_page_handler(pagetable_t pagetable, uint64 va) {
+  pte_t *pte;
+  uint64 pa;
+  uint flags;
+  char *mem;
+  
+  va = PGROUNDDOWN(va);
+  if((pte = walk(pagetable, va, 0)) == 0)
+    return -1;
+    
+  if((mem = kalloc()) == 0)
+    return -1;
 
+  *pte |= PTE_W;  // Add write permission
+  *pte = UNSET_RSW(*pte);
+  pa = PTE2PA(*pte);
+  flags = PTE_FLAGS(*pte);
+  
+  memmove(mem, (char*)pa, PGSIZE); // 复制物理内存到mem
+
+  uvmunmap(pagetable, va, 1, 0);
+  if(mappages(pagetable, va, PGSIZE, (uint64)mem, flags) != 0){
+    kfree(mem);
+    return -1;
+  }
+  kfree((void*)pa);  // Free the physical memory if no more references
+  return 0;
+}
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
 void
@@ -347,9 +365,16 @@ int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
-
+  pte_t *pte;
+  va0 = PGROUNDDOWN(dstva);
+  pte = walk(pagetable, va0, 0);
+  if(GET_RSW(*pte) == 1) {
+    if(miss_page_handler(pagetable, va0) == -1) {
+      return -1;
+    }
+  }
   while(len > 0){
-    va0 = PGROUNDDOWN(dstva);
+    // va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
