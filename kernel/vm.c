@@ -317,16 +317,32 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   return 0;
 
 }
+int is_copy_on_write_address(pagetable_t pagetable, uint64 va) {
+  if(va >= MAXVA)
+    return 0;
+  pte_t *pte;
+   va = PGROUNDDOWN(va);
+  if((pte = walk(pagetable, va, 0)) == 0)
+    return 0;
+  if(pte == 0)
+    return 0;
+  if((*pte & PTE_V) == 0)
+    return 0;
+  if((*pte & PTE_U) == 0)
+    return 0;
+  if(COW(*pte)) return 1;
+  return 0;
+}
 int miss_page_handler(pagetable_t pagetable, uint64 va) {
   pte_t *pte;
   uint64 pa;
   uint flags;
   char *mem;
-  
+  if(!is_copy_on_write_address(pagetable, va)) return -1;
   va = PGROUNDDOWN(va);
   if((pte = walk(pagetable, va, 0)) == 0)
     return -1;
-    
+//  printf("va: %p\t pte:%p\n", va, *pte);
   if((mem = kalloc()) == 0)
     return -1;
 
@@ -365,16 +381,14 @@ int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
-  pte_t *pte;
   va0 = PGROUNDDOWN(dstva);
-  pte = walk(pagetable, va0, 0);
-  if(GET_RSW(*pte) == 1) {
+  if(is_copy_on_write_address(pagetable, va0)) {
     if(miss_page_handler(pagetable, va0) == -1) {
       return -1;
     }
   }
   while(len > 0){
-    // va0 = PGROUNDDOWN(dstva);
+    va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
