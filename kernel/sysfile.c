@@ -16,6 +16,8 @@
 #include "file.h"
 #include "fcntl.h"
 
+#define MAX_DEP 10
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -252,7 +254,7 @@ create(char *path, short type, short major, short minor)
   if((ip = dirlookup(dp, name, 0)) != 0){
     iunlockput(dp);
     ilock(ip);
-    if(type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
+    if(type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE || ip->type == T_SYMLINK))
       return ip;
     iunlockput(ip);
     return 0;
@@ -308,6 +310,7 @@ sys_open(void)
       end_op();
       return -1;
     }
+    printf("open path: %s, dev: %d, inum: %d, type: %d, valid: %d\n", path, ip->dev, ip->inum, ip->type, ip->valid);
     ilock(ip);
     if(ip->type == T_DIR && omode != O_RDONLY){
       iunlockput(ip);
@@ -315,12 +318,42 @@ sys_open(void)
       return -1;
     }
   }
-
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
     iunlockput(ip);
     end_op();
     return -1;
   }
+
+  if (ip->type == T_SYMLINK && !(omode & O_NOFOLLOW)) {
+    int dep = MAX_DEP;
+    struct inode *ip2;
+    while (dep > 0) {
+      char name[MAXPATH];
+      if (readi(ip, 0, (uint64)name, 0, MAXPATH) > 0) {
+        iunlockput(ip);
+        if ((ip2 = namei(name)) == 0) {
+          end_op();
+          return -1;
+        } else {
+          ip = ip2;
+          ilock(ip);
+          if (ip->type != T_SYMLINK)
+            break;
+          dep--;
+        }
+      } else {
+        iunlockput(ip);
+        end_op();
+        return -1;
+      }
+    }
+    if (dep <= 0) {
+      iunlockput(ip);
+      end_op();
+      return -1;
+    }
+  }
+  printf("open after path: %s, dev: %d, inum: %d, type: %d, valid: %d\n", path, ip->dev, ip->inum, ip->type, ip->valid);
 
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
@@ -483,4 +516,27 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+uint64 sys_symlink(void) {
+  char new[MAXPATH], old[MAXPATH];
+
+  if (argstr(0, old, MAXPATH) < 0 || argstr(1, new, MAXPATH) < 0)
+    return -1;
+
+  begin_op();
+  struct inode *in;
+  if ((in = create(new, T_SYMLINK, 0, 0)) == 0) {
+    end_op();
+    return -1;
+  }
+  // printf("dev: %d, inum: %d\n", in->dev, in->inum);
+  if (writei(in, 0, (uint64)old, 0, sizeof(old)) > 0) {
+    iunlockput(in);
+    end_op();
+    return 0;
+  } else {
+    iunlock(in);
+    end_op();
+    return -1;
+  }
 }

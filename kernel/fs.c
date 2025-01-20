@@ -294,7 +294,9 @@ ilock(struct inode *ip)
   if(ip == 0 || ip->ref < 1)
     panic("ilock");
 
+  printf("try ilock inum: %d\n", ip->inum);
   acquiresleep(&ip->lock);
+  printf("try ilock success inum: %d\n", ip->inum);
 
   if(ip->valid == 0){
     bp = bread(ip->dev, IBLOCK(ip->inum, sb));
@@ -318,8 +320,9 @@ iunlock(struct inode *ip)
 {
   if(ip == 0 || !holdingsleep(&ip->lock) || ip->ref < 1)
     panic("iunlock");
-
+  printf("try iunlock inum: %d\n", ip->inum);
   releasesleep(&ip->lock);
+  printf("iunlock success inum: %d\n", ip->inum);
 }
 
 // Drop a reference to an in-memory inode.
