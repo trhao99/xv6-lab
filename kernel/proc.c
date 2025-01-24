@@ -315,6 +315,7 @@ fork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
+  fork_vma(np, p);
   return pid;
 }
 
@@ -343,7 +344,7 @@ exit(int status)
 
   if(p == initproc)
     panic("init exiting");
-
+  vma_free(p);
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
     if(p->ofile[fd]){
