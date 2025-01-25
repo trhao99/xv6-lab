@@ -230,9 +230,8 @@ void *mmap(void *addr, uint64 length, int prot, int flags,
   // printf("addr_start: %x\n", v->addr_start);
   return (void *)v->addr_start;
 }
-void mmap_miss_page_handler(uint64 va) {
+int mmap_miss_page_handler(uint64 va) {
   va = PGROUNDDOWN(va);
-  // printf("load page %x, pid: %d\n", va, myproc()->pid);
   struct proc *p = myproc();
   struct vma *v = p->vma;
   while (v) {
@@ -256,7 +255,8 @@ void mmap_miss_page_handler(uint64 va) {
     // uint64 pa = walkaddr(p->pagetable, va);
     // char * pc = (char *) pa;
     // printf("p[0]:%x, p[1]: %x, p[2]: %x, p[3]: %x\n", *pc, *(pc+1), *(pc+2), *(pc+3));
-  }
+  }else return -1;
+  return 0;
 }
 
 int munmap(uint64 va, int length) {

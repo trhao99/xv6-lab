@@ -34,7 +34,7 @@ int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
 void*           mmap(void *addr, uint64 length, int prot, int flags, int fd, uint64 offset);
-void            mmap_miss_page_handler(uint64);
+int             mmap_miss_page_handler(uint64);
 int             munmap(uint64, int);
 struct vma*     alloc_vma();
 void            vma_free(struct proc*);
